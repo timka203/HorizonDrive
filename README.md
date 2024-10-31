@@ -1,3 +1,1 @@
-
-Small Console audio visualizer written c#
-
+Small console audio visualizer written on c#
