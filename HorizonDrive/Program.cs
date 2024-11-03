@@ -12,34 +12,42 @@ using System.Linq;
 using System.Threading;
 using AForge.Math;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace HorizonDrive
 { 
     class AudioVisualizer
     {
         public static char division = '#';
-        private static string text = "";
+        private static string text = division + "";
         static int inverted_size = 20;
+        static int buffer = 22;
+        static int speed = 17;
+        static WaveInEvent waveIn;
+        static int buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
+
 
         public void ConsoleAudioVisualizer(char division = '#')
         {
             Thread thr2 = new Thread(AudioVisualizer.ConsoleInput);
             thr2.Start();
             AudioVisualizer.division = division;
-            WaveInEvent waveIn = new NAudio.Wave.WaveInEvent
+            waveIn = new NAudio.Wave.WaveInEvent
+
             {
-                DeviceNumber = 1, // indicates which microphone to use
+                DeviceNumber = 0, // indicates which microphone to use
                 WaveFormat = new NAudio.Wave.WaveFormat(rate: 44100, bits: 16, channels: 1),
-                BufferMilliseconds = 22
+                BufferMilliseconds = buffer
             };
             waveIn.DataAvailable += WaveIn_DataAvailable;
             waveIn.StartRecording();
+           
 
         }
 
         void  WaveIn_DataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e)
         {
-            Int16[] values = new Int16[1024];
+            Int16[] values = new Int16[buffer_size];
             Buffer.BlockCopy(e.Buffer, 0, values, 0, e.Buffer.Length);
             int sampleRate = 44100;
             System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
@@ -56,7 +64,15 @@ namespace HorizonDrive
                 Console.WriteLine(bar);
             }
             Console.WriteLine(AudioVisualizer.text);
-            Thread.Sleep(1);
+            var durationTicks = Math.Round(0.001 * speed * Stopwatch.Frequency);
+            var sw = Stopwatch.StartNew();
+
+            while (sw.ElapsedTicks < durationTicks)
+            {
+
+            }
+
+
             Console.Clear();
         }
         static void ConsoleInput()
@@ -125,6 +141,32 @@ namespace HorizonDrive
                         case "bar":
                             AudioVisualizer.division = words[i + 1][0];
                             break;
+                        case "speed":
+                            try
+                            {
+                                string tmp_speed = words[i + 1];
+                                speed = Double.TryParse(tmp_speed, out double test) ? Convert.ToInt32(tmp_speed) : 17;
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            break;
+
+                        case "buffer":
+                            try
+                            {
+                                string tmp_buffer = words[i + 1];
+                                buffer = Double.TryParse(tmp_buffer, out double test) ? Convert.ToInt32(tmp_buffer) : buffer;
+                                waveIn.StopRecording();
+                                buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
+                                waveIn.BufferMilliseconds = buffer;
+
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            break;
+
 
                         default:
                             break;
