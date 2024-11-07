@@ -24,6 +24,7 @@ namespace HorizonDrive
         static int buffer = 22;
         static int speed = 17;
         static WaveInEvent waveIn;
+        static bool inverted = false;
         static int buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
 
 
@@ -52,29 +53,69 @@ namespace HorizonDrive
             int sampleRate = 44100;
             System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
             double[] psd = FftSharp.FFT.Power(spectrum);
-            double[] freq = FftSharp.FFT.FrequencyScale(psd.Length, sampleRate);
-            for (int i = 0; i < psd.Length - inverted_size; i += inverted_size)
-            {
-                string bar = division.ToString();
-                var count = psd.ToList().GetRange(i, inverted_size).Average();
-                if (count > 0)
-                {
-                    bar = new(division, (int)(count));
-                }
-                Console.WriteLine(bar);
-            }
+            ConsoleOutput(psd);
             Console.WriteLine(AudioVisualizer.text);
             var durationTicks = Math.Round(0.001 * speed * Stopwatch.Frequency);
             var sw = Stopwatch.StartNew();
-
             while (sw.ElapsedTicks < durationTicks)
             {
 
             }
-
-
             Console.Clear();
         }
+
+        static void ConsoleOutput(double[] psd)
+        {
+            if (inverted)
+            {
+                for (int i = 0; i < psd.Length - inverted_size; i += inverted_size)
+                {
+                    string bar = division.ToString();
+                    var count = psd.ToList().GetRange(i, inverted_size).Average();
+                    if (count > 0)
+                    {
+                        bar = new(division, (int)(count));
+                    }
+                    Console.WriteLine(bar);
+                }
+            }
+            else
+            {
+                List<char[]> bars = new List<char[]>();
+                for (int i = 0; i < psd.Length - inverted_size; i += inverted_size)
+                {
+                    string bar;
+
+                    var count = psd.ToList().GetRange(i, inverted_size).Average();
+                    if (count > 0)
+                    {
+                        bar = new(division, (int)(count));
+                        if (count < 20)
+                        {
+                            string test = new('-', (int)(20 - count));
+                            bar += test;
+                        }
+                    }
+                    else
+                    {
+                        bar = new('-', (int)(20));
+                    }
+                    bar = bar.Insert(1, "0");
+                    bars.Add(bar.ToCharArray());
+                }
+                char[][] tmp = bars.ToArray();
+                if (tmp.Length > 1)
+                {
+                    for (int i = 19; i > 0; i--)
+                    {
+                        char[] bar;
+                        bar = tmp.Select(v => v[i]).ToArray();
+                        Console.WriteLine(bar);
+                    }
+                }
+            }
+        }
+
         static void ConsoleInput()
         {
             while(true)
@@ -152,6 +193,13 @@ namespace HorizonDrive
                             }
                             break;
 
+                        case "invert":
+                            {
+                                inverted = !inverted;
+                                i++;
+                            }
+                            break;
+
                         case "buffer":
                             try
                             {
@@ -166,7 +214,6 @@ namespace HorizonDrive
                             {
                             }
                             break;
-
 
                         default:
                             break;
@@ -188,8 +235,7 @@ namespace HorizonDrive
             AudioVisualizer audioVisualizer = new AudioVisualizer();
             audioVisualizer.ConsoleAudioVisualizer();
 
-            Console.WriteLine("C# Audio Level Meter");
-            Console.WriteLine("(press any key to exit)");
+            Console.WriteLine("C# AudioVisualizer");
             Console.ReadLine();
         }
     }
