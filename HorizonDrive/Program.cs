@@ -19,7 +19,7 @@ namespace HorizonDrive
     class AudioVisualizer
     {
         public static char division = '#';
-        private static string text = division + "";
+        private static string text = "";
         static int inverted_size = 20;
         static int buffer = 22;
         static int speed = 17;
@@ -36,7 +36,7 @@ namespace HorizonDrive
             waveIn = new NAudio.Wave.WaveInEvent
 
             {
-                DeviceNumber = 0, // indicates which microphone to use
+                DeviceNumber = 1, // indicates which microphone to use
                 WaveFormat = new NAudio.Wave.WaveFormat(rate: 44100, bits: 16, channels: 1),
                 BufferMilliseconds = buffer
             };
@@ -92,13 +92,13 @@ namespace HorizonDrive
                         bar = new(division, (int)(count));
                         if (count < 20)
                         {
-                            string test = new('-', (int)(20 - count));
+                            string test = new(' ', (int)(20 - count));
                             bar += test;
                         }
                     }
                     else
                     {
-                        bar = new('-', (int)(20));
+                        bar = new(' ', (int)(20));
                     }
                     bar = bar.Insert(1, "0");
                     bars.Add(bar.ToCharArray());
@@ -132,7 +132,7 @@ namespace HorizonDrive
             if (text.Contains(";"))
             {
                 var words = text.ToLower().TrimEnd(';').Split(' ');
-                for (int i = 0; i < words.Length-1; i++)
+                for (int i = 0; i < words.Length; i++)
                 {
                     switch (words[i])
                     {
@@ -172,7 +172,7 @@ namespace HorizonDrive
                             try
                             {
                                 string size = words[i+1];
-                                inverted_size = Double.TryParse(size, out double test) ? Convert.ToInt32(size) : 20;
+                                inverted_size = Int32.TryParse(size, out int test) ? Convert.ToInt32(size) : 20;
                             }
                             catch (Exception)
                             {
@@ -186,7 +186,7 @@ namespace HorizonDrive
                             try
                             {
                                 string tmp_speed = words[i + 1];
-                                speed = Double.TryParse(tmp_speed, out double test) ? Convert.ToInt32(tmp_speed) : 17;
+                                speed = Int32.TryParse(tmp_speed, out int test) ? Convert.ToInt32(tmp_speed) : 17;
                             }
                             catch (Exception)
                             {
@@ -204,8 +204,7 @@ namespace HorizonDrive
                             try
                             {
                                 string tmp_buffer = words[i + 1];
-                                buffer = Double.TryParse(tmp_buffer, out double test) ? Convert.ToInt32(tmp_buffer) : buffer;
-                                waveIn.StopRecording();
+                                buffer = Int32.TryParse(tmp_buffer, out int test) ? Convert.ToInt32(tmp_buffer) : buffer;
                                 buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
                                 waveIn.BufferMilliseconds = buffer;
 
@@ -230,13 +229,11 @@ namespace HorizonDrive
         static void Main(string[] args)
         {
             Console.CursorVisible = false;
-            // Printing the current dimensions
             Console.ForegroundColor = ConsoleColor.Green;
             AudioVisualizer audioVisualizer = new AudioVisualizer();
             audioVisualizer.ConsoleAudioVisualizer();
-
             Console.WriteLine("C# AudioVisualizer");
-            Console.ReadLine();
+            //Console.ReadLine();
         }
     }
 }
