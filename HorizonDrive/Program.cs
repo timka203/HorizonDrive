@@ -133,7 +133,7 @@ namespace HorizonDrive
             if (text.Contains(";"))
             {
                 var index = text.IndexOf('\b');
-                while (index!= -1)
+                while (index!= -1)// loop for backspace support
                 {
                     text = text.Remove(index-1, 2);
                     index = text.IndexOf('\b');
