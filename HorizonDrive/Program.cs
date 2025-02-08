@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 
 namespace HorizonDrive
-{ 
+{
     class AudioVisualizer
     {
         public static char division = '#';
@@ -28,7 +28,7 @@ namespace HorizonDrive
         static int buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
 
 
-        public void ConsoleAudioVisualizer(char division = '#')
+    public void ConsoleAudioVisualizer(char division = '#')
         {
             Thread thr2 = new Thread(AudioVisualizer.ConsoleInput);
             thr2.Start();
@@ -40,13 +40,13 @@ namespace HorizonDrive
                 WaveFormat = new NAudio.Wave.WaveFormat(rate: 44100, bits: 16, channels: 1),
                 BufferMilliseconds = buffer
             };
-            waveIn.DataAvailable += WaveIn_DataAvailable;
+            waveIn.DataAvailable += WaveIn_DataAvailable_Console;
             waveIn.StartRecording();
-           
+
 
         }
 
-        void  WaveIn_DataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e)
+        void WaveIn_DataAvailable_Console(object? sender, NAudio.Wave.WaveInEventArgs e)
         {
             Int16[] values = new Int16[buffer_size];
             Buffer.BlockCopy(e.Buffer, 0, values, 0, e.Buffer.Length);
@@ -54,14 +54,6 @@ namespace HorizonDrive
             System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
             double[] psd = FftSharp.FFT.Power(spectrum);
             ConsoleOutput(psd);
-            Console.WriteLine(AudioVisualizer.text);
-            var durationTicks = Math.Round(0.001 * speed * Stopwatch.Frequency);
-            var sw = Stopwatch.StartNew();
-            while (sw.ElapsedTicks < durationTicks)
-            {
-
-            }
-            Console.Clear();
         }
 
         static void ConsoleOutput(double[] psd)
@@ -100,7 +92,7 @@ namespace HorizonDrive
                     {
                         bar = new(' ', (int)(20));
                     }
-                    bar = bar.Insert(1, "0");
+                    bar = bar.Insert(1, division.ToString());
                     bars.Add(bar.ToCharArray());
                 }
                 char[][] tmp = bars.ToArray();
@@ -114,24 +106,41 @@ namespace HorizonDrive
                     }
                 }
             }
+            Console.WriteLine(AudioVisualizer.text);
+            var durationTicks = Math.Round(0.001 * speed * Stopwatch.Frequency);
+            var sw = Stopwatch.StartNew();
+            while (sw.ElapsedTicks < durationTicks)
+            {
+
+            }
+            Console.Clear();
         }
 
         static void ConsoleInput()
         {
-            while(true)
+            while (true)
             {
                 char keyPressed = Console.ReadKey().KeyChar;
                 AudioVisualizer.text += keyPressed;
                 CheckCommand();
-            }      
+            }
         }
+
 
         static void CheckCommand()
         {
             Random rnd = new Random();
             if (text.Contains(";"))
             {
+                var index = text.IndexOf('\b');
+                while (index!= -1)
+                {
+                    text = text.Remove(index-1, 2);
+                    index = text.IndexOf('\b');
+                }
                 var words = text.ToLower().TrimEnd(';').Split(' ');
+
+
                 for (int i = 0; i < words.Length; i++)
                 {
                     switch (words[i])
