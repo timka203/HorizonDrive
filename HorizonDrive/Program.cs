@@ -1,17 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
-using System.IO;
 using NAudio.Wave;
-using NAudio.FileFormats;
-using NAudio.CoreAudioApi;
-using NAudio;
-
 using System.Linq;
 using System.Threading;
-using AForge.Math;
-using System.Threading.Tasks;
 using System.Diagnostics;
 
 namespace HorizonDrive
@@ -28,13 +19,12 @@ namespace HorizonDrive
         static int buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
 
 
-    public void ConsoleAudioVisualizer(char division = '#')
+        public void ConsoleAudioVisualizer(char division = '#')
         {
             Thread thr2 = new Thread(AudioVisualizer.ConsoleInput);
             thr2.Start();
             AudioVisualizer.division = division;
             waveIn = new NAudio.Wave.WaveInEvent
-
             {
                 DeviceNumber = 1, // indicates which microphone to use
                 WaveFormat = new NAudio.Wave.WaveFormat(rate: 44100, bits: 16, channels: 1),
@@ -42,15 +32,12 @@ namespace HorizonDrive
             };
             waveIn.DataAvailable += WaveIn_DataAvailable_Console;
             waveIn.StartRecording();
-
-
         }
 
         void WaveIn_DataAvailable_Console(object? sender, NAudio.Wave.WaveInEventArgs e)
         {
             Int16[] values = new Int16[buffer_size];
             Buffer.BlockCopy(e.Buffer, 0, values, 0, e.Buffer.Length);
-            int sampleRate = 44100;
             System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
             double[] psd = FftSharp.FFT.Power(spectrum);
             ConsoleOutput(psd);
@@ -122,114 +109,129 @@ namespace HorizonDrive
             {
                 char keyPressed = Console.ReadKey().KeyChar;
                 AudioVisualizer.text += keyPressed;
-                CheckCommand();
+                if (text.Contains(";"))
+                {
+                    text = Backspace_Support(text);
+                    var words = text.ToLower().TrimEnd(';').Split(' ');
+                    CheckCommand(words);
+                }
             }
         }
 
+        static void CheckCommand(string[] words)
+        {
+            for (int i = 0; i < words.Length; i++)
+            {
+                switch (words[i])
+                {
+                    case "color":
+                        ChangeColor(words[i + 1]); 
+                        break;
+                    case "size":
+                        try
+                        {
+                            string size = words[i + 1];
+                            inverted_size = Int32.TryParse(size, out int test) ? Convert.ToInt32(size) : 20;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                        break;
 
-        static void CheckCommand()
+                    case "bar":
+                        AudioVisualizer.division = words[i + 1][0];
+                        break;
+                    case "speed":
+                        try
+                        {
+                            string tmp_speed = words[i + 1];
+                            speed = Int32.TryParse(tmp_speed, out int test) ? Convert.ToInt32(tmp_speed) : 17;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                        break;
+
+                    case "invert":
+                        {
+                            inverted = !inverted;
+                            i++;
+                        }
+                        break;
+
+                    case "buffer":
+                        try
+                        {
+                            string tmp_buffer = words[i + 1];
+                            buffer = Int32.TryParse(tmp_buffer, out int test) ? Convert.ToInt32(tmp_buffer) : buffer;
+                            buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
+                            waveIn.BufferMilliseconds = buffer;
+
+                        }
+                        catch (Exception)
+                        {
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            text = "";
+        }
+        static string Backspace_Support(string text_to_edit)
+        {
+            var index = text_to_edit.IndexOf('\b');
+            while (index != -1)// loop for backspace support
+            {
+                if (index == 0)
+                {
+                    text_to_edit = text_to_edit.Remove(index, 1);
+                }
+                else
+                {
+                    text_to_edit = text_to_edit.Remove(index - 1, 2);
+                }
+                index = text_to_edit.IndexOf('\b');
+            }
+            return text_to_edit;
+        }
+
+        static void ChangeColor(string color)
         {
             Random rnd = new Random();
-            if (text.Contains(";"))
+            switch (color)
             {
-                var index = text.IndexOf('\b');
-                while (index!= -1)// loop for backspace support
-                {
-                    text = text.Remove(index-1, 2);
-                    index = text.IndexOf('\b');
-                }
-                var words = text.ToLower().TrimEnd(';').Split(' ');
-
-
-                for (int i = 0; i < words.Length; i++)
-                {
-                    switch (words[i])
-                    {
-                        case "color":
-                            switch (words[i+1])
-                            {
-                                case "red":
-                                    Console.ForegroundColor = ConsoleColor.Red;
-                                    break;
-                                case "green":
-                                    Console.ForegroundColor = ConsoleColor.Green;
-                                    break;
-                                case "white":
-                                    Console.ForegroundColor = ConsoleColor.White;
-                                    break;
-                                case "yellow":
-                                    Console.ForegroundColor = ConsoleColor.Yellow;
-                                    break;
-                                case "blue":
-                                    Console.ForegroundColor = ConsoleColor.Blue;
-                                    break;
-                                case "magenta":
-                                    Console.ForegroundColor = ConsoleColor.Magenta;
-                                    break;
-                                case "cyan":
-                                    Console.ForegroundColor = ConsoleColor.Cyan;
-                                    break;
-                                case "gray":
-                                    Console.ForegroundColor = ConsoleColor.Gray;
-                                    break;
-                                case "random":
-                                    Console.ForegroundColor = (ConsoleColor)rnd.Next(1, 15);
-                                    break;
-                            }
-                            break;
-                        case "size":
-                            try
-                            {
-                                string size = words[i+1];
-                                inverted_size = Int32.TryParse(size, out int test) ? Convert.ToInt32(size) : 20;
-                            }
-                            catch (Exception)
-                            {
-                            }
-                            break;
-
-                        case "bar":
-                            AudioVisualizer.division = words[i + 1][0];
-                            break;
-                        case "speed":
-                            try
-                            {
-                                string tmp_speed = words[i + 1];
-                                speed = Int32.TryParse(tmp_speed, out int test) ? Convert.ToInt32(tmp_speed) : 17;
-                            }
-                            catch (Exception)
-                            {
-                            }
-                            break;
-
-                        case "invert":
-                            {
-                                inverted = !inverted;
-                                i++;
-                            }
-                            break;
-
-                        case "buffer":
-                            try
-                            {
-                                string tmp_buffer = words[i + 1];
-                                buffer = Int32.TryParse(tmp_buffer, out int test) ? Convert.ToInt32(tmp_buffer) : buffer;
-                                buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
-                                waveIn.BufferMilliseconds = buffer;
-
-                            }
-                            catch (Exception)
-                            {
-                            }
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-                text = "";
+                case "red":
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    break;
+                case "green":
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+                case "white":
+                    Console.ForegroundColor = ConsoleColor.White;
+                    break;
+                case "yellow":
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    break;
+                case "blue":
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    break;
+                case "magenta":
+                    Console.ForegroundColor = ConsoleColor.Magenta;
+                    break;
+                case "cyan":
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    break;
+                case "gray":
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    break;
+                case "random":
+                    Console.ForegroundColor = (ConsoleColor)rnd.Next(1, 15);
+                    break;
             }
         }
+
     }
 
 
