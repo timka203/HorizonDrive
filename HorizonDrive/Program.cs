@@ -118,6 +118,8 @@ namespace HorizonDrive
             }
         }
 
+
+
         static void CheckCommand(string[] words)
         {
             for (int i = 0; i < words.Length; i++)
@@ -160,17 +162,7 @@ namespace HorizonDrive
                         break;
 
                     case "buffer":
-                        try
-                        {
-                            string tmp_buffer = words[i + 1];
-                            buffer = Int32.TryParse(tmp_buffer, out int test) ? Convert.ToInt32(tmp_buffer) : buffer;
-                            buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
-                            waveIn.BufferMilliseconds = buffer;
-
-                        }
-                        catch (Exception)
-                        {
-                        }
+                        ChangeBuffer(words[i + 1]);
                         break;
 
                     default:
@@ -196,7 +188,19 @@ namespace HorizonDrive
             }
             return text_to_edit;
         }
+        static void ChangeBuffer(string buffer_new_value)
+        {
+            try
+            {
+                buffer = Int32.TryParse(buffer_new_value, out int test) ? Convert.ToInt32(buffer_new_value) : buffer;
+                buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
+                waveIn.BufferMilliseconds = buffer;
 
+            }
+            catch (Exception)
+            {
+            }
+        }
         static void ChangeColor(string color)
         {
             Random rnd = new Random();
