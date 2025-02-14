@@ -7,44 +7,53 @@ using System.Diagnostics;
 
 namespace HorizonDrive
 {
-    class AudioVisualizer
+    public abstract class AudioVisualizer
     {
-        public static char division = '#';
-        private static string text = "";
-        static int inverted_size = 20;
-        static int buffer = 22;
-        static int speed = 17;
-        static WaveInEvent waveIn;
-        static bool inverted = false;
-        static int buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
+        public abstract void Start();
+        public abstract void Output(double[] psd);
+        protected abstract void WaveIn_DataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e);
+    }
 
-
-        public void ConsoleAudioVisualizer(char division = '#')
+    class ConsoleAudioVisualizer : AudioVisualizer
+    {
+        public char division = '#';
+        string text = "";
+        int inverted_size = 20;
+        int buffer = 22;
+        int speed = 17;
+        WaveInEvent waveIn;
+        bool inverted = false;
+        int buffer_size;
+        public ConsoleAudioVisualizer(char new_division = '#')
         {
-            Thread thr2 = new Thread(AudioVisualizer.ConsoleInput);
+            buffer_size = (int)Math.Pow(2, (int)(Math.Log(buffer * 89) / Math.Log(2)) + 1);
+            this.division = new_division;
+        }
+
+        public override void Start()
+        {
+            Thread thr2 = new Thread(this.Input);
             thr2.Start();
-            AudioVisualizer.division = division;
             waveIn = new NAudio.Wave.WaveInEvent
             {
-                DeviceNumber = 1, // indicates which microphone to use
+                DeviceNumber = 0, // indicates which microphone to use
                 WaveFormat = new NAudio.Wave.WaveFormat(rate: 44100, bits: 16, channels: 1),
                 BufferMilliseconds = buffer
             };
-            waveIn.DataAvailable += WaveIn_DataAvailable_Console;
+            waveIn.DataAvailable += WaveIn_DataAvailable;
             waveIn.StartRecording();
         }
 
-        void WaveIn_DataAvailable_Console(object? sender, NAudio.Wave.WaveInEventArgs e)
+        protected override void WaveIn_DataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e)
         {
             Int16[] values = new Int16[buffer_size];
             Buffer.BlockCopy(e.Buffer, 0, values, 0, e.Buffer.Length);
             System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
             double[] psd = FftSharp.FFT.Power(spectrum);
-            ConsoleOutput(psd);
+            Output(psd);
         }
-
-        static void ConsoleOutput(double[] psd)
-        {
+         public override void Output(double[] psd)
+         {
             if (inverted)
             {
                 for (int i = 0; i < psd.Length - inverted_size; i += inverted_size)
@@ -93,7 +102,7 @@ namespace HorizonDrive
                     }
                 }
             }
-            Console.WriteLine(AudioVisualizer.text);
+            Console.WriteLine(text);
             var durationTicks = Math.Round(0.001 * speed * Stopwatch.Frequency);
             var sw = Stopwatch.StartNew();
             while (sw.ElapsedTicks < durationTicks)
@@ -103,12 +112,12 @@ namespace HorizonDrive
             Console.Clear();
         }
 
-        static void ConsoleInput()
+        void Input()
         {
             while (true)
             {
                 char keyPressed = Console.ReadKey().KeyChar;
-                AudioVisualizer.text += keyPressed;
+                this.text += keyPressed;
                 if (text.Contains(";"))
                 {
                     text = Backspace_Support(text);
@@ -120,20 +129,20 @@ namespace HorizonDrive
 
 
 
-        static void CheckCommand(string[] words)
+        void CheckCommand(string[] words)
         {
             for (int i = 0; i < words.Length; i++)
             {
                 switch (words[i])
                 {
                     case "color":
-                        ChangeColor(words[i + 1]); 
+                        ChangeColor(words[i + 1]);
                         break;
                     case "size":
                         try
                         {
                             string size = words[i + 1];
-                            inverted_size = Int32.TryParse(size, out int test) ? Convert.ToInt32(size) : 20;
+                            this.inverted_size = Int32.TryParse(size, out int test) ? Convert.ToInt32(size) : 20;
                         }
                         catch (Exception)
                         {
@@ -141,7 +150,7 @@ namespace HorizonDrive
                         break;
 
                     case "bar":
-                        AudioVisualizer.division = words[i + 1][0];
+                        division = words[i + 1][0];
                         break;
                     case "speed":
                         try
@@ -188,7 +197,7 @@ namespace HorizonDrive
             }
             return text_to_edit;
         }
-        static void ChangeBuffer(string buffer_new_value)
+        void ChangeBuffer(string buffer_new_value)
         {
             try
             {
@@ -201,7 +210,7 @@ namespace HorizonDrive
             {
             }
         }
-        static void ChangeColor(string color)
+        void ChangeColor(string color)
         {
             Random rnd = new Random();
             switch (color)
@@ -238,15 +247,14 @@ namespace HorizonDrive
 
     }
 
-
     class Program
     {
         static void Main(string[] args)
         {
             Console.CursorVisible = false;
             Console.ForegroundColor = ConsoleColor.Green;
-            AudioVisualizer audioVisualizer = new AudioVisualizer();
-            audioVisualizer.ConsoleAudioVisualizer();
+            AudioVisualizer audioVisualizer = new ConsoleAudioVisualizer();
+            audioVisualizer.Start();
             Console.WriteLine("C# AudioVisualizer");
             //Console.ReadLine();
         }
