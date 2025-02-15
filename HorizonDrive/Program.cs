@@ -128,6 +128,19 @@ namespace HorizonDrive
         }
 
 
+        void ChangeSpeed(string new_speed)
+        {
+            try
+            {
+                speed = Int32.TryParse(new_speed, out int test) ? Convert.ToInt32(new_speed) : 17;
+            }
+            catch (Exception)
+            {
+            }
+
+        }
+
+
 
         void CheckCommand(string[] words)
         {
@@ -136,7 +149,10 @@ namespace HorizonDrive
                 switch (words[i])
                 {
                     case "color":
-                        ChangeColor(words[i + 1]);
+                        if (words.Length > 1)
+                        {
+                            ChangeColor(words[i + 1]);
+                        }
                         break;
                     case "size":
                         try
@@ -153,13 +169,9 @@ namespace HorizonDrive
                         division = words[i + 1][0];
                         break;
                     case "speed":
-                        try
+                        if (words.Length > 1)
                         {
-                            string tmp_speed = words[i + 1];
-                            speed = Int32.TryParse(tmp_speed, out int test) ? Convert.ToInt32(tmp_speed) : 17;
-                        }
-                        catch (Exception)
-                        {
+                            ChangeSpeed(words[i + 1]);
                         }
                         break;
 
@@ -171,7 +183,10 @@ namespace HorizonDrive
                         break;
 
                     case "buffer":
-                        ChangeBuffer(words[i + 1]);
+                        if (words.Length > 1)
+                        {
+                            ChangeBuffer(words[i + 1]);
+                        }
                         break;
 
                     default:
@@ -183,7 +198,7 @@ namespace HorizonDrive
         static string Backspace_Support(string text_to_edit)
         {
             var index = text_to_edit.IndexOf('\b');
-            while (index != -1)// loop for backspace support
+            while (index != -1)// checking if any backspace left
             {
                 if (index == 0)
                 {
