@@ -12,6 +12,14 @@ namespace HorizonDrive
         public abstract void Start();
         public abstract void Output(double[] psd);
         protected abstract void WaveIn_DataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e);
+
+        protected double[] GetPSD(NAudio.Wave.WaveInEventArgs e, int buffer_size)
+        {
+            Int16[] values = new Int16[buffer_size];
+            Buffer.BlockCopy(e.Buffer, 0, values, 0, e.Buffer.Length);
+            System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
+            return FftSharp.FFT.Power(spectrum);
+        }
     }
 
     class ConsoleAudioVisualizer : AudioVisualizer
@@ -44,13 +52,11 @@ namespace HorizonDrive
             waveIn.StartRecording();
         }
 
+
+
         protected override void WaveIn_DataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e)
         {
-            Int16[] values = new Int16[buffer_size];
-            Buffer.BlockCopy(e.Buffer, 0, values, 0, e.Buffer.Length);
-            System.Numerics.Complex[] spectrum = FftSharp.FFT.Forward(values.Select(x => (double)x).ToArray());
-            double[] psd = FftSharp.FFT.Power(spectrum);
-            Output(psd);
+            Output(GetPSD(e,buffer_size));
         }
          public override void Output(double[] psd)
          {
